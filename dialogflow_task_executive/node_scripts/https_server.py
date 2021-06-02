@@ -13,15 +13,15 @@ class Server():
     def __init__(self):
         rospack = rospkg.RosPack()
         httpsconffile = rospack.get_path('dialogflow_task_executive') + "/config/https.json"
-        # certfile = rospack.get_path('dialogflow_task_executive') + "/auth/certfile.json"
+        certfile = rospack.get_path('dialogflow_task_executive') + "/auth/certfile.json"
         with open(httpsconffile) as f:
             json_dict = json.load(f)
             self.host = json_dict['ip']
             self.port = int(json_dict['port'])
-        # with open(certfile) as f:
-        #     json_dict = json.load(f)
-        #     # self._certfile_path = json_dict['certfile']
-        #     # self._keyfile_path = json_dict['keyfile']
+        with open(certfile) as f:
+            json_dict = json.load(f)
+            self._certfile_path = json_dict['certfile']
+            self._keyfile_path = json_dict['keyfile']
         self._run_handler()
         rospy.init_node('dialogflow_https_server')
         rospy.on_shutdown(self.killnode)
@@ -31,7 +31,7 @@ class Server():
         
     def _run_handler(self):
         self.httpd = s.HTTPServer((self.host, self.port), DialogFlowHandler)
-        # self.httpd.socket = ssl.wrap_socket(self.httpd.socket, certfile=self._certfile_path, keyfile=self._keyfile_path, server_side=True)
+        self.httpd.socket = ssl.wrap_socket(self.httpd.socket, certfile=self._certfile_path, keyfile=self._keyfile_path, server_side=True)
 
         
 class DialogFlowHandler(s.BaseHTTPRequestHandler):
@@ -69,6 +69,7 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         msg.speech_score = 1.0
         msg.intent_score = self.json_content['queryResult']['intentDetectionConfidence']
         print(msg)
+
         self.pub.publish(msg)
         
     def _response(self):
@@ -78,7 +79,7 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         # make response
         body  = "method: " + str(self.command) + "\n"
         body += "params: " + str(params) + "\n"
-        # body += "body  : " + req_body + "\n"
+        body += "body  : " + req_body + "\n"
         self.send_response(200)
         self.send_header('Content-type', 'text/html; charset=utf-8')
         self.send_header('Content-length', len(body.encode()))
@@ -92,7 +93,7 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         
 if __name__ == '__main__':
     try:
-        # logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG)
         server = Server()
         rospy.loginfo('DialogFlow HTTPS Server starts - %s:%s' % (server.host, server.port))
         server.httpd.serve_forever()
