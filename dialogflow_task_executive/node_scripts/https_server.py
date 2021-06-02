@@ -3,14 +3,22 @@
 import rospy
 import rospkg
 from dialogflow_task_executive.msg import DialogResponse
+
 import http.server as s
 from urllib.parse import urlparse, parse_qs
 import ssl
-import logging
-import json
+
+import json, logging
 
 class Server():
+    """
+    This server is expected to accept the POST https message from Google DialogFlow.
+    If the server received the message, it publishes the topic 'dialogflow_task_executive.msg DialogResponse' and send response to Google DialogFlow.
+    """
     def __init__(self):
+        """
+        You need to set the path to certfile for ssl connection. You shouldn't use self-signed certificate.
+        """
         rospack = rospkg.RosPack()
         httpsconffile = rospack.get_path('dialogflow_task_executive') + "/config/https.json"
         certfile = rospack.get_path('dialogflow_task_executive') + "/auth/certfile.json"
@@ -22,9 +30,9 @@ class Server():
             json_dict = json.load(f)
             self._certfile_path = json_dict['certfile']
             self._keyfile_path = json_dict['keyfile']
-        self._run_handler()
-        rospy.init_node('dialogflow_https_server')
         rospy.on_shutdown(self.killnode)
+        rospy.init_node('dialogflow_https_server', disable_signals=True)
+        self._run_handler()
         
     def killnode(self):
         self.httpd.shutdown()
@@ -36,28 +44,35 @@ class Server():
         
 class DialogFlowHandler(s.BaseHTTPRequestHandler):
     """
-    The HTTPS response to react the POST from Google DialogFlow and publish a ROS topic.
+    The handler to react the POST from Google DialogFlow and publish a ROS topic.
     """
     def __init__(self, *args):
         self.pub = rospy.Publisher('dialog_response', DialogResponse, queue_size=1)
         s.BaseHTTPRequestHandler.__init__(self, *args)
     
     def do_POST(self):
-        print('Got POST request')
+        """
+        The Handler is expected to recieve POST method from Google Dialogflow. If the request is not the POST method or from Google Dialogflow, it returns the error.
+        """
         user_agent = self.headers.get("User-Agent")
-        rospy.loginfo(self.headers)
-        # if user_agent == "Google-Dialogflow":
-        self._parse_json()
-        self._pub_task()
-        self._response()
-                
+        rospy.loginfo('Recieved POST request' + str(self.headers))
+        if user_agent == "Google-Dialogflow":
+            self._parse_json()
+            self._pub_task()
+            self._response()
+        else:
+            rospy.logerr('User-Agent header should be Google-Dialogflow, but got ' + user_agent)
+            self._bad_request()
+
     def _parse_json(self):
         content_len = int(self.headers.get("content-length"))
         request_body = self.rfile.read(content_len).decode("utf-8")
         self.json_content = json.loads(request_body)
-        print(self.json_content)
 
     def _pub_task(self):
+        """
+        Publish ROS message to exec task.
+        """
         msg = DialogResponse()
         msg.header.stamp = rospy.Time.now()
         msg.query = self.json_content['queryResult']['queryText']
@@ -68,23 +83,33 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         msg.parameters = json.dumps(self.json_content['queryResult']['parameters'])
         msg.speech_score = 1.0
         msg.intent_score = self.json_content['queryResult']['intentDetectionConfidence']
-        print(msg)
-
         self.pub.publish(msg)
+
+    def _make_response(self):
+        """
+        This function is in development. If you want to develop the application like the robot sends its state to the Dialogflow and the Dialogflow handle it, you have to make new response_type. 
+        Plese see https://cloud.google.com/dialogflow/es/docs/fulfillment-webhook#webhook_response for details.
+        """
+        res_body = {}
+        
+        # default text response
+        # res_body["fulfillmentMessages"] = []
+        # res_body["fulfillmentMessages"].append({})
+        # res_body["fulfillmentMessages"][0]["text"] = {"text": ["Text response from webhook"]}
+        
+        self.res_body = json.dumps(res_body, indent=2)
         
     def _response(self):
-        # update url param
-        url_parsed = urlparse(self.path)
-        params = parse_qs(url_parsed.query)
-        # make response
-        body  = "method: " + str(self.command) + "\n"
-        body += "params: " + str(params) + "\n"
-        body += "body  : " + req_body + "\n"
+        """
+        The DialogFlow client expects the non-empty response.
+        Please see https://cloud.google.com/dialogflow/es/docs/fulfillment-webhook for details.
+        """
+        self._make_response()
         self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.send_header('Content-length', len(body.encode()))
+        self.send_header('Content-type', 'application/json; charset=utf-8')
+        self.send_header('Content-length', len(self.res_body.encode()))
         self.end_headers()
-        self.wfile.write(body.encode())
+        self.wfile.write(self.res_body.encode('utf-8'))
 
     def _bad_request(self):
         self.send_response(400)
@@ -92,12 +117,6 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
 
         
 if __name__ == '__main__':
-    try:
-        logging.basicConfig(level=logging.DEBUG)
-        server = Server()
-        rospy.loginfo('DialogFlow HTTPS Server starts - %s:%s' % (server.host, server.port))
-        server.httpd.serve_forever()
-        server.killnode()
-        
-    except:
-        pass
+    server = Server()
+    rospy.loginfo('DialogFlow HTTPS Server starts - %s:%s' % (server.host, server.port))
+    server.httpd.serve_forever()
