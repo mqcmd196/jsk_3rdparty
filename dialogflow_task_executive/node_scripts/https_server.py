@@ -8,7 +8,7 @@ import http.server as s
 from urllib.parse import urlparse, parse_qs
 import ssl
 
-import json, logging
+import json
 
 class Server():
     """
@@ -61,7 +61,7 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
             self._pub_task()
             self._response()
         else:
-            rospy.logerr('User-Agent header should be Google-Dialogflow, but got ' + user_agent)
+            rospy.logwarn('User-Agent header should be Google-Dialogflow, but got ' + user_agent)
             self._bad_request()
 
     def _parse_json(self):
@@ -83,6 +83,7 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         msg.parameters = json.dumps(self.json_content['queryResult']['parameters'])
         msg.speech_score = 1.0
         msg.intent_score = self.json_content['queryResult']['intentDetectionConfidence']
+        rospy.loginfo("The message summary from Dialogflow \n" + str(msg))
         self.pub.publish(msg)
 
     def _make_response(self):
@@ -117,6 +118,9 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
 
         
 if __name__ == '__main__':
-    server = Server()
-    rospy.loginfo('DialogFlow HTTPS Server starts - %s:%s' % (server.host, server.port))
-    server.httpd.serve_forever()
+    try:
+        server = Server()
+        rospy.loginfo('DialogFlow HTTPS Server starts - %s:%s' % (server.host, server.port))
+        server.httpd.serve_forever()
+    except Exception as e:
+        rospy.logerr(e)
