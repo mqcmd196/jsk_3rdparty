@@ -23,6 +23,7 @@ if(NOT gcc_dump_machine MATCHES "x86_64-.*")
 endif()
 
 find_package(catkin REQUIRED COMPONENTS
+    catkin_virtualenv
     message_generation
     std_msgs
     catkin_virtualenv
@@ -47,6 +48,7 @@ catkin_generate_virtualenv(INPUT_REQUIREMENTS requirements.in)
 file(GLOB NODE_SCRIPTS_FILES node_scripts/*.py)
 catkin_install_python(
   PROGRAMS ${NODE_SCRIPTS_FILES}
+
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
