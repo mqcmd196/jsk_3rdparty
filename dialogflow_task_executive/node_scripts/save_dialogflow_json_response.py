@@ -68,7 +68,7 @@ class DialogflowJSONResponse(object):
 
     def _save_file(self):
         with open(self.filepath, 'w') as f:
-            json.dump(self._json_body, f)
+            json.dump(self._json_body, f, ensure_ascii=False)
 
     def _simple_json_response(self):
         self._json_body = {
