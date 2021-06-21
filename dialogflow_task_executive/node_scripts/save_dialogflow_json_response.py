@@ -11,11 +11,15 @@ def get_option():
                            help='The action name which is registered at DialogFlow.'
     )
     argparser.add_argument('-s', '--style', type=str,
-                           default='simple', choices=['simple'],
-                           help='The response style. Expected simple or card. This is not the official Google API method.')
+                           default='text', choices=['text', 'image', 'card'],
+                           help='The response style. Expected text, image, card. This is not the official Google API method.')
     argparser.add_argument('-t', '--text', type=str,
                            default=None,
-                           help='The text of the agent\'s response.'
+                           help='The title or text of the agent\'s response.'
+    )
+    argparser.add_argument('-st', '--subtitle', type=str,
+                           default=None,
+                           help='The subtitle of the agent\'s response.'
     )
     argparser.add_argument('-i', '--image', type=str,
                            default=None,
@@ -39,7 +43,7 @@ def get_option():
 
 
 class DialogflowJSONResponse(object):
-    """Simple JSON response for Google Dialogflow.
+    """JSON response for Google Dialogflow.
         Note:
             Please see the official API document for details.
             https://cloud.google.com/dialogflow/es/docs/reference/rpc/google.cloud.dialogflow.v2?hl=ja#webhookresponse
@@ -48,6 +52,7 @@ class DialogflowJSONResponse(object):
         self.style = style
         self.output = output
         self.text = None
+        self.subtitle = None
         self.image = None
         self.accessibilitytext = None
         # self.media = None
@@ -60,17 +65,21 @@ class DialogflowJSONResponse(object):
         os.remove(self.lockpath)
 
     def export_json(self):
-        if self.style == "simple":
-            self._simple_json_response()
+        if self.style == "text":
+            self._text_json_response()
+        elif self.style == "image":
+            self._image_json_response()
+        elif self.style == "card":
+            self._card_json_response()
         else:
             raise ValueError("No such style name.")
         self._save_file()
 
     def _save_file(self):
         with open(self.filepath, 'w') as f:
-            json.dump(self._json_body, f, ensure_ascii=False)
+            json.dump(self._json_body, f, ensure_ascii=False, indent=2, encoding="utf-8")
 
-    def _simple_json_response(self):
+    def _text_json_response(self):
         self._json_body = {
             "fulfillmentMessages": [
                 {
@@ -78,10 +87,30 @@ class DialogflowJSONResponse(object):
                         "text": [
                             self.text
                         ]
-                    },
+                    }
+                }
+            ]
+        }
+
+    def _image_json_response(self):
+        self._json_body = {
+            "fulfillmentMessages": [
+                {
                     "image": {
-                        "image_uri": self.image,
-                        "accessibility_text": self.accessibilitytext
+                        "image_uri": self.image
+                    }
+                }
+            ]
+        }
+
+    def _card_json_response(self):
+        self._json_body = {
+            "fulfillmentMessages": [
+                {
+                    "card": {
+                        "title": self.text,
+                        "subtitle": self.subtitle,
+                        "image_uri": self.image
                     }
                 }
             ]
@@ -91,6 +120,7 @@ def main():
     args = get_option()
     json_saver = DialogflowJSONResponse(args.action, args.style, args.output)
     json_saver.text = args.text
+    json_saver.subtitle = args.subtitle
     json_saver.image = args.image
     json_saver.accessibilitytext = args.accessibilitytext
     json_saver.export_json()
