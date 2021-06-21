@@ -29,7 +29,6 @@ class Server(object):
             self.port = json_dict['port']
             self._certfile_path = json_dict['certfile']
             self._keyfile_path = json_dict['keyfile']
-            self.json_request_dir = json_dict['jsonRequestDir']
         rospy.on_shutdown(self.killnode)
         rospy.init_node('dialogflow_webhook_server', disable_signals=True)
         self._run_handler()
@@ -47,8 +46,18 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
     The handler to react the POST from Google DialogFlow and publish a ROS topic.
     """
     def __init__(self, *args):
+        rospack = rospkg.RosPack()
+        conffile = rospy.get_param('~webhook_config', os.path.join(rospack.get_path('dialogflow_task_executive'), 'config/webhook.json'))
+
+        with open(conffile) as f:
+            json_dict = json.load(f)
+            self.json_request_dir = json_dict['jsonRequestDir']
         self.pub = rospy.Publisher('dialog_response', DialogResponse, queue_size=1)
-        s.BaseHTTPRequestHandler.__init__(self, *args)
+
+        try:
+            s.BaseHTTPRequestHandler.__init__(self, *args)
+        except ConnectionResetError as e:
+            pass
     
     def do_POST(self):
         """
@@ -59,7 +68,7 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         if user_agent == "Google-Dialogflow":
             self._parse_json()
             self._pub_task()
-            rospy.sleep(5.0)
+            rospy.sleep(2.0)
             self._response()
         else:
             rospy.logwarn('User-Agent header should be Google-Dialogflow, but got ' + user_agent)
@@ -93,10 +102,12 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         Please see https://cloud.google.com/dialogflow/es/docs/fulfillment-webhook#webhook_response for details.
         """
         try:
-            with open(os.path.join(self.json_request_dir, "dialogflow_response_" + self.json_content['queryResult']['action'] + ".json"), 'r') as f:
-            self.res_body = json.load(f)
-        except:
+            with open(os.path.join(self.json_request_dir, "dialogflow_response_" + self.json_content['queryResult']['action'] + ".json"), 'rb') as f:
+                self.res_body = f.read()
+        except Exception as e:
+            rospy.logerr(e)
             rospy.logwarn("Failed to make DialogFlow webhook reponse.")
+            self.res_body = ""
             pass
 
     def _response(self):
@@ -107,9 +118,9 @@ class DialogFlowHandler(s.BaseHTTPRequestHandler):
         self._make_response()
         self.send_response(200)
         self.send_header('Content-type', 'application/json; charset=utf-8')
-        self.send_header('Content-length', len(self.res_body.encode()))
+        # self.send_header('Content-length', len(self.res_body))
         self.end_headers()
-        self.wfile.write(self.res_body.encode('utf-8'))
+        self.wfile.write(self.res_body)
 
     def _bad_request(self):
         self.send_response(400)
