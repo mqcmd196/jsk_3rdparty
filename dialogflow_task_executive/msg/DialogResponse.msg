@@ -1,4 +1,5 @@
 Header header
+string response_id
 string action
 string query
 string response
