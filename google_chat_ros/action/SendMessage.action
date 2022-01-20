@@ -3,7 +3,7 @@ string text
 google_chat_ros/Card[] cards
 string thread_name
 string space
-google_chat_ros/Attachment[] attachments
+string[] upload_file_localpaths
 ---
 # Define the result
 bool done
