@@ -24,7 +24,7 @@ class GoogleChatROS(object):
     """
     def __init__(self):
         recieving_chat_mode = rospy.get_param('~recieving_mode') # select from 'dialogflow', 'url', 'none'
-
+        self.gdrive_ros_srv = rospy.get_param('~gdrive_upload_service')
         # For REST, sending message 
         rest_keyfile = rospy.get_param('~google_cloud_credentials_json')
         self._client = GoogleChatRESTClient(rest_keyfile)
@@ -45,6 +45,8 @@ class GoogleChatROS(object):
         # For POST, recieving message
         if recieving_chat_mode in ("url", "dialogflow"):
             # rosparams
+            self.upload_data_timeout = rospy.get_param('~upload_data_timeout')
+            self.upload_data_parents_path = rospy.get_param('~upload_data_parents_path')
             self.download_data = rospy.get_param('~download_data')
             self.download_directory = rospy.get_param('~download_directory')
             self.download_avatar = rospy.get_param('~download_avatar')
@@ -53,10 +55,10 @@ class GoogleChatROS(object):
             self._space_activity_pub = rospy.Publisher("~space_activity", SpaceEvent, queue_size=1)
             self._card_activity_pub = rospy.Publisher("~card_activity", CardEvent, queue_size=1)
 
-            rospy.loginfo("Starting Google Chat HTTPS server...")
             try:
                 if recieving_chat_mode == "url":
                     rospy.loginfo("Expected to get Google Chat Bot URL request")
+                    rospy.loginfo("Starting Google Chat HTTPS server...")
                     self.host = rospy.get_param('~host')
                     self.port = int(rospy.get_param('~port'))
                     self.ssl_certfile = rospy.get_param('~ssl_certfile')
@@ -95,12 +97,6 @@ class GoogleChatROS(object):
         json_body = {}
         json_body['text'] = goal.text
         json_body['thread'] = {'name': goal.thread_name}
-        # Attachment
-        json_body['attachment'] = []
-        if goal.upload_file_localpaths:
-            for localpath in goal.upload_file_localpaths:
-                drive_id = self._upload_file(localpath, return_id=True)
-                json_body['attachment'].append({"driveDataRef":{"driveFileId": drive_id}})
 
         # Card
         json_body['cards'] = []
@@ -378,22 +374,25 @@ class GoogleChatROS(object):
         """
         # ROS service client
         try:
-            rospy.wait_for_service("upload", timeout=5.0)
-            gdrive_upload = rospy.ServiceProxy("upload", Upload)
+            rospy.wait_for_service(self.gdrive_ros_srv, timeout=self.upload_data_timeout)
+            gdrive_upload = rospy.ServiceProxy(self.gdrive_ros_srv, Upload)
         except rospy.ROSException as e:
             rospy.logerr("No Google Drive ROS upload service was found. Please check gdrive_ros is correctly launched and service name is correct.")
+            rospy.logerr(e)
             return
         # upload
         try:
-            res = gdrive_upload(filepath)
+            res = gdrive_upload(file_path=filepath, parents_path=self.upload_data_parents_path)
         except rospy.ServiceException as e:
             rospy.logerr("Failed to call Google Drive upload service, status:{}".format(str(e)))
         else:
             if return_id:
                 drive_id = res.file_id
+                rospy.loginfo("Google drive ID:{}".format(drive_id))
                 return drive_id
             else:
                 url = res.file_url
+                rospy.loginfo("Google drive URL:{}".format(url))
                 return url
 
     def _get_attachment(self, item):
