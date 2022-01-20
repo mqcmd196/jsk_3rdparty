@@ -130,8 +130,10 @@ class GoogleChatROS(object):
 
         try:
             # establish the service
+            # TODO debug
+            rospy.loginfo("Send json")
+            rospy.loginfo(str(json_body))
             self._client.build_service()
-            rospy.loginfo("Send text type message")
             feedback.status = str(
                 self._client.message_request(
                     space=goal.space,
@@ -273,7 +275,7 @@ class GoogleChatROS(object):
         json_body = []
         for msg in widgets_msg:
             is_text = bool(msg.text_paragraph)
-            is_image = bool(msg.image.image_uri) or bool(msg.image.localpath)
+            is_image = bool(msg.image.image_url) or bool(msg.image.localpath)
             is_keyval = bool(msg.key_value.content)
             if (is_text & is_image) | (is_image & is_keyval) | (is_keyval & is_text):
                 rospy.logerr("Error happened when making widgetMarkup json. Please fill in one of the text_paragraph, image, key_value. Do not fill in more than two at the same time.")
@@ -281,13 +283,14 @@ class GoogleChatROS(object):
                 json_body.append({'textParagraph':msg.text_paragraph})
             elif is_image:
                 image_json = {}
-                if msg.image.image_uri:
-                    image_json['imageUrl'] = msg.image.image_uri
+                if msg.image.image_url:
+                    image_json['imageUrl'] = msg.image.image_url
                 elif msg.image.localpath:
                     image_json['imageUrl'] = self._upload_file(msg.image.localpath)
                 image_json['onClick'] = self._make_on_click_json(msg.image.on_click)
-                image_json['aspectRatio'] = msg.image.aspect_ratio
-                json_body.append(image_json)
+                if msg.image.aspect_ratio:
+                    image_json['aspectRatio'] = msg.image.aspect_ratio
+                json_body.append({'image':image_json})
             elif is_keyval:
                 keyval_json = {}
                 keyval_json['topLabel'] = msg.key_value.top_label
@@ -302,7 +305,7 @@ class GoogleChatROS(object):
                 elif msg.key_value.original_icon_localpath:
                     keyval_json['iconUrl'] = self._upload_file(msg.key_value.original_icon_localpath)
                 keyval_json['button'] = self._make_button_json(msg.key_value.button)
-                json_body.append(keyval_json)
+                json_body.append({'KeyValue':keyval_json})
         return json_body
 
     def _make_on_click_json(self, on_click_msg):
@@ -382,7 +385,7 @@ class GoogleChatROS(object):
             return
         # upload
         try:
-            res = gdrive_upload(file_path=filepath, parents_path=self.upload_data_parents_path)
+            res = gdrive_upload(file_path=filepath)
         except rospy.ServiceException as e:
             rospy.logerr("Failed to call Google Drive upload service, status:{}".format(str(e)))
         else:
