@@ -95,9 +95,15 @@ class GoogleChatROS(object):
         json_body = {}
         json_body['text'] = goal.text
         json_body['thread'] = {'name': goal.thread_name}
-        json_body['cards'] = []
+        # Attachment
+        json_body['attachment'] = []
+        if goal.upload_file_localpaths:
+            for localpath in goal.upload_file_localpaths:
+                drive_id = self._upload_file(localpath, return_id=True)
+                json_body['attachment'].append({"driveDataRef":{"driveFileId": drive_id}})
 
         # Card
+        json_body['cards'] = []
         if goal.cards:
             for card in goal.cards:
                 card_body = {}
@@ -363,7 +369,7 @@ class GoogleChatROS(object):
         user.human = True if item.get('type') == "HUMAN" else False
         return user
 
-    def _upload_file(self, filepath):
+    def _upload_file(self, filepath, return_id=False):
         """Get local filepath and upload to Google Drive
         :param filepath: local file's path you want to upload
         :type filepath: string
@@ -372,8 +378,8 @@ class GoogleChatROS(object):
         """
         # ROS service client
         try:
-            rospy.wait_for_service("~upload", timeout=5.0)
-            gdrive_upload = rospy.ServiceProxy("~upload", Upload)
+            rospy.wait_for_service("upload", timeout=5.0)
+            gdrive_upload = rospy.ServiceProxy("upload", Upload)
         except rospy.ROSException as e:
             rospy.logerr("No Google Drive ROS upload service was found. Please check gdrive_ros is correctly launched and service name is correct.")
             return
@@ -383,8 +389,12 @@ class GoogleChatROS(object):
         except rospy.ServiceException as e:
             rospy.logerr("Failed to call Google Drive upload service, status:{}".format(str(e)))
         else:
-            url = res.file_url
-            return url
+            if return_id:
+                drive_id = res.file_id
+                return drive_id
+            else:
+                url = res.file_url
+                return url
 
     def _get_attachment(self, item):
         attachment = Attachment()
