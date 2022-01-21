@@ -335,7 +335,7 @@ class GoogleChatROS(object):
             action['actionMethodName'] = on_click_msg.action.action_method_name
             parameters = []
             for parameter in on_click_msg.action.parameters:
-                parameters.append({parameter['key']: parameter['value']})
+                parameters.append({'key':parameter.key, 'value':parameter.value})
             action['parameters'] = parameters
             json_body['action'] = action
         elif on_click_msg.open_link_url:
