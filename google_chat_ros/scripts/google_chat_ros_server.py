@@ -201,9 +201,9 @@ class GoogleChatROS(object):
             if event.get('action'):
                 action = event.get('action')
                 msg.action.action_method_name = action.get('actionMethodName')
-                if action.get('actionMethodName', {}).get('parameters'):
+                if action.get('parameters'):
                     parameters = []
-                    for param in action.get('actionMethodName').get('parameters'):
+                    for param in action.get('parameters'):
                         action_parameter = ActionParameter()
                         action_parameter.key = param.get('key')
                         action_parameter.value = param.get('value')
