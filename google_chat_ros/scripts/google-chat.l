@@ -52,16 +52,18 @@
 (defun create-google-chat-button
     (button-name button-action-name
      &key (button-action-key) (button-action-value))
-       (let ((button (instance google_chat_ros::Button :init))
-             (action (instance google_chat_ros::FormAction :init))
-             (parameter (instance google_chat_ros::ActionParameter :init)))
-             (send button :text_button_name button-name)
-             (send action :action_method_name button-action-name)
-             (send parameter :key button-action-key)
-             (send parameter :value button-action-value)
-             (send action :parameters (list parameter))
-             (send button :text_button_on_click action)
-             button))
+  (let ((button (instance google_chat_ros::Button :init))
+        (text-button-on-click (instance google_chat_ros::OnClick :init))
+        (action (instance google_chat_ros::FormAction :init))
+        (parameter (instance google_chat_ros::ActionParameter :init)))
+    (send button :text_button_name button-name)
+    (send action :action_method_name button-action-name)
+    (send parameter :key button-action-key)
+    (send parameter :value button-action-value)
+    (send action :parameters (list parameter))
+    (send text-button-on-click :action action)
+    (send button :text_button_on_click text-button-on-click)
+    button))
 
 (defun send-google-chat-buttons
     ;; buttons should be list
