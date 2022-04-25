@@ -69,6 +69,11 @@ class GoogleChatROS(object):
                 elif recieving_chat_mode == "dialogflow":
                     rospy.loginfo("Expected to get OriginalDetectIntentRequest.msg from dialogflow webhook ros node.")
                     self._sub = rospy.Subscriber("dialogflow_original_application_request", OriginalDetectIntentRequest, self.dialogflow_cb)
+                elif recieving_chat_mode == "pubsub":
+                    rospy.loginfo("Expected to use Google Cloud Pub Sub service")
+                    # self._pubsub =
+
+
 
             except ConnectionError as e:
                 rospy.logwarn("The error occurred while starting HTTPS server")
