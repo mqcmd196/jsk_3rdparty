@@ -25,6 +25,7 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
     message_generation
     std_msgs
+    actionlib_msgs
     catkin_virtualenv
 )
 
@@ -33,9 +34,15 @@ add_message_files(
   DialogResponse.msg
 )
 
+add_action_files(
+  FILES
+  DialogText.action
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs
+  actionlib_msgs
 )
 
 catkin_package(
@@ -45,6 +52,7 @@ catkin_package(
 catkin_generate_virtualenv(INPUT_REQUIREMENTS requirements.in)
 
 file(GLOB NODE_SCRIPTS_FILES node_scripts/*.py)
+
 catkin_install_python(
   PROGRAMS ${NODE_SCRIPTS_FILES}
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
