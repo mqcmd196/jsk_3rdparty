@@ -221,8 +221,8 @@ class GoogleChatROS(object):
                     parameters = []
                     for param in action.get('parameters'):
                         action_parameter = ActionParameter()
-                        action_parameter.key = param.get('key')
-                        action_parameter.value = param.get('value')
+                        action_parameter.key = param.get('key', '')
+                        action_parameter.value = param.get('value', '')
                         parameters.append(action_parameter)
                 msg.action.parameters = parameters
             if publish_topic:
