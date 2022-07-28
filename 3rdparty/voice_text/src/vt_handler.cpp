@@ -1,3 +1,8 @@
+/*
+ * vt_handler.cpp
+ * Author: Yoshiki Obinata <obinata@jsk.imi.i.u-tokyo.ac.jp>
+ */
+
 #include "vt_handler.h"
 
 VTHandler::VTHandler(std::string lincense_path){
@@ -30,9 +35,16 @@ VTHandler::VTHandler(std::string lincense_path){
   globfree(&api_gbuf_);
 
   if(this->vt_type != NO_VT){
-    dl_handle = dlopen(lib_file_, RTLD_NOW);
+    this->dl_handle = dlopen(lib_file_, RTLD_NOW);
+    if(this->vt_type == VT_SDK){
+
+    }
   }else{
     ROS_FATAL("No Voice Text or Read Speaker libraries have found\n");
     return;
   }
+}
+
+VTHandler::VTH_TextToFile(int pitch, int speed, int volume, int pause,
+                          char *text_char, char *wave_path){
 }

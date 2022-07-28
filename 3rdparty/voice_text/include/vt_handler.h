@@ -1,3 +1,8 @@
+/*
+ * vt_handler.h
+ * Author: Yoshiki Obinata <obinata@jsk.imi.i.u-tokyo.ac.jp>
+ */
+
 #ifndef VT_HANDLER_H_
 #define VT_HANDLER_H_
 
