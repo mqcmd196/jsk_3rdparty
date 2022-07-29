@@ -36,15 +36,38 @@ VTHandler::VTHandler(std::string lincense_path){
 
   if(this->vt_type != NO_VT){
     this->dl_handle = dlopen(lib_file_, RTLD_NOW);
-    if(this->vt_type == VT_SDK){
-
-    }
+    LoadSym();
   }else{
     ROS_FATAL("No Voice Text or Read Speaker libraries have found\n");
     return;
   }
 }
 
-VTHandler::VTH_TextToFile(int pitch, int speed, int volume, int pause,
-                          char *text_char, char *wave_path){
+VTHandler::~VTHandler(){
+  dlclose(this->dl_handle);
+}
+
+int VTHandler::LoadSym(){
+  const char* dl_err_;
+  if(vt_type == VT_SDK){
+    s_VT_LOADTTS_JPN_ = dlsym(this->dl_handle, "VT_LOADTTS_JPN");
+    s_VT_UNLOADTTS_JPN_ = dlsym(this->dl_handle, "VT_UNLOADTTS_JPN");
+    s_VT_GetTTSInfo_JPN_ = dlsym(this->dl_handle, "VT_GetTTSInfo_JPN");
+    s_VT_TextToFile_JPN_ = dlsym(this->dl_handle, "VT_TextToFile_JPN");
+  }else if(vt_type == VT_API){
+
+  }
+  dl_err_ = dlerror();
+  if (dl_err_ != NULL){
+    ROS_FATAL_STREAM("Error occured when loading VoiceText or ReadSpeaker libraries"
+                     << dl_err_);
+    dlclose(this->dl_handle);
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
+void VTHandler::VTH_TextToFile(int pitch, int speed, int volume, int pause,
+                               char *text_char, char *wave_path){
 }

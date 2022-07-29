@@ -13,7 +13,7 @@
 // logging
 #include <ros/ros.h>
 
-// Voice Text API and ReadSpeaker APi
+// VoiceText SDK and ReadSpeaker APi
 #include <vt_jpn.h>
 #include <vtapi.h>
 
@@ -32,15 +32,26 @@ VT_API
 } VT_Types;
 
 class VTHandler{
-public:
-    VTHandler(std::string license_path);
-    ~VTHandler();
-    void VTH_TextToFile(int pitch, int speed, int volume, int pause,
-                        char* text_char, char* wave_path);
-    void VTH_Exit();
-private:
-    void* dl_handle;
-    VT_Types vt_type;
+    public:
+        VTHandler(std::string license_path);
+        ~VTHandler();
+        void VTH_TextToFile(int pitch, int speed, int volume, int pause,
+                            char* text_char, char* wave_path);
+        void VTH_Exit();
+    private:
+        void* dl_handle;
+        VT_Types vt_type;
+
+        // define handle
+        int LoadSym();
+
+        // Load symbols
+        // Related to VoiceText SDK
+        void* s_VT_LOADTTS_JPN_;
+        void* s_VT_UNLOADTTS_JPN_;
+        void* s_VT_GetTTSInfo_JPN_;
+        void* s_VT_TextToFile_JPN_;
+
 };
 
 
