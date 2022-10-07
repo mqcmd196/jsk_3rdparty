@@ -1,0 +1,7 @@
+string model # The model to be used
+string prompt # The prompt. REQUIRED
+string suffix
+
+
+---
+result

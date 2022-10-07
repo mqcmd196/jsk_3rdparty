@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>gpt3_ros</name>
+  <version>2.1.25</version>
+  <description>The GPT-3 client package</description>
+
+  <author email="obinata@jsk.imi.i.u-tokyo.ac.jp">Yoshiki Obinata</author>
+  <maintainer email="obinata@jsk.imi.i.u-tokyo.ac.jp">Yoshiki Obinata</maintainer>
+  <maintainer email="k-okada@jsk.imi.i.u-tokyo.ac.jp">Kei Okada</maintainer>
+
+  <license>BSD</license>
+
+  <depend>actionlib</depend>
+  <depend>message_runtime</depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>message_generation</depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+    <pip_requirements>requirements.txt</pip_requirements>
+  </export>
+</package>

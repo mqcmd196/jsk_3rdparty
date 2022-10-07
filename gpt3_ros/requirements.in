@@ -1,0 +1,2 @@
+setuptools>=40.8.0 # see https://github.com/pypa/setuptools/issues/1694
+openai
